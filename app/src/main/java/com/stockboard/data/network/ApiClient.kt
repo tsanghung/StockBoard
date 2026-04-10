@@ -116,9 +116,15 @@ object ApiClient {
                 .method(original.method, original.body)
                 .build()
             val response = chain.proceed(request)
-            // 日誌：確認回應內容是否以 { 開頭
             val bodyString = response.body?.string() ?: ""
+
             Log.d("TaifexRaw", "status=${response.code} firstChar='${bodyString.trimStart().firstOrNull()}' preview=${bodyString.take(120)}")
+
+            // 加入防呆檢查：若收到 HTML 則直接拋出例外，避免進入 Moshi 解析
+            if (bodyString.trimStart().startsWith("<")) {
+                throw java.io.IOException("Taifex API 回傳 HTML 錯誤網頁，可能遭到防護機制攔截或 Cookie 遺失。")
+            }
+
             response.newBuilder()
                 .body(bodyString.toResponseBody(response.body?.contentType()))
                 .build()
@@ -130,6 +136,8 @@ object ApiClient {
         try {
             val request = Request.Builder()
                 .url("https://mis.taifex.com.tw/")
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
                 .get()
                 .build()
             taifexClient.newCall(request).execute().use { resp ->

@@ -8,7 +8,8 @@
         android:name=".StockBoardApplication"
         android:allowBackup="true"
         android:label="StockBoard"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true">
 
         <!--
             Task 6-1：AdMob App ID
