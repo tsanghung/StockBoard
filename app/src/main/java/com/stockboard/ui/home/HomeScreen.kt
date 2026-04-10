@@ -1,11 +1,16 @@
 package com.stockboard.ui.home
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
@@ -16,7 +21,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,6 +36,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import com.stockboard.ui.theme.BackgroundDark
+import com.stockboard.ui.theme.CardDark
 import com.stockboard.ui.theme.ColorUp
 import com.stockboard.ui.theme.TextPrimary
 import com.stockboard.ui.theme.TextSecondary
@@ -156,25 +164,66 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                 // 大盤 / 台灣
                 item { SectionTitle("大盤 / 台灣") }
                 item {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.height(260.dp).padding(horizontal = 12.dp),
-                        userScrollEnabled = false
-                    ) {
-                        items(uiState.twIndices.size) { i ->
-                            val itemUi = uiState.twIndices[i]
-                            val name = itemUi.shortName
-                            val price = itemUi.price?.let { String.format("%.2f", it) } ?: "0.00"
-                            val changeVal = itemUi.change ?: 0.0
-                            val pctVal = itemUi.changePercent ?: 0.0
-                            val change = String.format("%+.2f", changeVal)
-                            val pct = String.format("%+.2f", pctVal)
-                            val isUp = when {
-                                changeVal > 0 -> true
-                                changeVal < 0 -> false
-                                else -> null
+                    val context = LocalContext.current
+                    Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+                        // 只顯示前兩個指數（上市、上櫃），移除台指期卡片
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.height(120.dp),
+                            userScrollEnabled = false
+                        ) {
+                            val twDisplayIndices = uiState.twIndices.take(2)
+                            items(twDisplayIndices.size) { i ->
+                                val itemUi = twDisplayIndices[i]
+                                val name = itemUi.shortName
+                                val price = itemUi.price?.let { String.format("%.2f", it) } ?: "0.00"
+                                val changeVal = itemUi.change ?: 0.0
+                                val pctVal = itemUi.changePercent ?: 0.0
+                                val change = String.format("%+.2f", changeVal)
+                                val pct = String.format("%+.2f", pctVal)
+                                val isUp = when {
+                                    changeVal > 0 -> true
+                                    changeVal < 0 -> false
+                                    else -> null
+                                }
+                                IndexCard(name, price, change, pct, isUp)
                             }
-                            IndexCard(name, price, change, pct, isUp)
+                        }
+                        // 臺股期貨行情超連結卡片（取代原台指期卡片）
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = CardDark),
+                            modifier = Modifier
+                                .fillMaxWidth(0.5f)
+                                .padding(4.dp)
+                                .clickable {
+                                    val intent = Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://www.taifex.com.tw/eventTaifexTradingCenter/cht/index.do")
+                                    )
+                                    context.startActivity(intent)
+                                }
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .height(80.dp),
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "臺股期貨行情",
+                                    color = Color(0xFF64B5F6),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textDecoration = TextDecoration.Underline
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "點擊前往期交所 →",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
                     }
                 }
