@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 網路權限（API 請求 + 廣告下載） -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:name=".StockBoardApplication"
+        android:allowBackup="true"
+        android:label="StockBoard"
+        android:supportsRtl="true">
+
+        <!--
+            Task 6-1：AdMob App ID
+            測試 ID（正式版需替換為真實 App ID）：
+            ca-app-pub-3940256099942544~3347511713
+        -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

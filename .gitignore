@@ -1,0 +1,30 @@
+# Build artifacts
+.gradle/
+build/
+app/build/
+
+# IDE files
+.idea/
+*.iml
+.DS_Store
+
+# Local configuration
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Large files and logs
+*.hprof
+*.log
+*.bak
+
+# Others
+test_dirs.py
+test_phase*.py
+test_principles.py
+test_room.py
+test_task*.py
+test_techstack.py
+test_throttle.py
+test_validator.py
