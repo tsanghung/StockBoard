@@ -105,23 +105,29 @@ object ApiClient {
         .cookieJar(taifexCookieJar)
         .addInterceptor { chain ->
             val original = chain.request()
-            val request = original.newBuilder()
+
+            // 依據 HTTP Method 動態調整 Header
+            val requestBuilder = original.newBuilder()
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-                .header("Referer", "https://mis.taifex.com.tw/")
-                .header("Origin", "https://mis.taifex.com.tw")
-                .header("X-Requested-With", "XMLHttpRequest")
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json, text/plain, */*")
-                .header("Accept-Language", "zh-TW,zh;q=0.9,en;q=0.8")
-                .method(original.method, original.body)
-                .build()
+                .header("Referer", "https://mis.taifex.com.tw/fusion/")
+
+            if (original.method == "POST") {
+                requestBuilder.header("Origin", "https://mis.taifex.com.tw")
+                requestBuilder.header("X-Requested-With", "XMLHttpRequest")
+                requestBuilder.header("Content-Type", "application/json")
+                requestBuilder.header("Accept", "application/json, text/plain, */*")
+            } else {
+                requestBuilder.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+            }
+
+            val request = requestBuilder.method(original.method, original.body).build()
             val response = chain.proceed(request)
             val bodyString = response.body?.string() ?: ""
 
-            Log.d("TaifexRaw", "status=${response.code} firstChar='${bodyString.trimStart().firstOrNull()}' preview=${bodyString.take(120)}")
+            Log.d("TaifexRaw", "method=${original.method} status=${response.code} firstChar='${bodyString.trimStart().firstOrNull()}' preview=${bodyString.take(120).replace("\n", "")}")
 
-            // 加入防呆檢查：若收到 HTML 則直接拋出例外，避免進入 Moshi 解析
-            if (bodyString.trimStart().startsWith("<")) {
+            // 防錯機制：只針對預期回傳 JSON 的 POST 請求進行 HTML 攔截
+            if (original.method == "POST" && bodyString.trimStart().startsWith("<")) {
                 throw java.io.IOException("Taifex API 回傳 HTML 錯誤網頁，可能遭到防護機制攔截或 Cookie 遺失。")
             }
 
@@ -135,9 +141,7 @@ object ApiClient {
     fun warmupTaifex() {
         try {
             val request = Request.Builder()
-                .url("https://mis.taifex.com.tw/")
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+                .url("https://mis.taifex.com.tw/fusion/") // 改為直接對齊 fusion 目錄
                 .get()
                 .build()
             taifexClient.newCall(request).execute().use { resp ->
