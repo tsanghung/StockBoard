@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stockboard.data.db.AppDatabase
-import com.stockboard.data.model.TaifexQuoteRequest
 import com.stockboard.data.model.TwseMisItem
 import com.stockboard.data.network.ApiClient
 import com.stockboard.util.RateLimiter
@@ -43,7 +42,6 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // 台股指數（上市/上櫃由 TWSE MIS 抓取，台指期由 Yahoo Chart 抓取）
 
     // Yahoo Finance 美股真實指數 symbol
     private val usMarketSymbols = listOf(
@@ -105,53 +103,11 @@ class HomeViewModel(
     }
 
     /**
-     * 台股指數：
-     * - 上市 / 上櫃 → TWSE MIS 官方即時 API（最準確）
-     * - 台指期       → Taifex MIS 官方即時 API（日夜盤自動切換）
+     * 台股指數：上市 / 上櫃 → TWSE MIS 官方即時 API
      */
-    private suspend fun fetchTwIndices() = coroutineScope {
-        val misJob = async { fetchTwseMisIndices() }
-        val txfJob = async { fetchTaifexFutures() }
-
-        val (twii, otc) = misJob.await()
-        val txf = txfJob.await()
-
-        _uiState.value = _uiState.value.copy(twIndices = listOf(twii, otc, txf))
-    }
-
-    /**
-     * 判斷日盤 / 夜盤：
-     * 08:45–14:59 → "0"（日盤）
-     * 15:00–次日05:00 → "1"（夜盤）
-     */
-    private fun getTaifexMarketType(): String {
-        val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Taipei"))
-        val totalMinutes = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
-        return if (totalMinutes >= 15 * 60 || totalMinutes < 5 * 60) "1" else "0"
-    }
-
-    /** 台指期：呼叫 Taifex MIS，取近月合約第一筆資料 */
-    private suspend fun fetchTaifexFutures(): UsIndexUiModel {
-        return try {
-            val marketType = getTaifexMarketType()
-            Log.d("Taifex", "marketType=$marketType (Asia/Taipei)")
-            // 連線預熱：先 GET 首頁取得 Session Cookie，再發 POST
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                ApiClient.warmupTaifex()
-            }
-            val response = ApiClient.taifexMisService.getQuote(
-                TaifexQuoteRequest(MarketType = marketType)
-            )
-            val item = response.rtDataList?.firstOrNull()
-            val price = item?.matchPrice?.toDoubleOrNull()
-            val ref = item?.todayRefPrice?.toDoubleOrNull()
-            val change = if (price != null && ref != null) price - ref else null
-            val pct = if (change != null && ref != null && ref != 0.0) change / ref * 100 else null
-            UsIndexUiModel("TXF", "台指期", price, change, pct)
-        } catch (e: Exception) {
-            Log.e("Taifex", "fetchTaifexFutures error: ${e::class.simpleName}: ${e.message}")
-            UsIndexUiModel("TXF", "台指期")
-        }
+    private suspend fun fetchTwIndices() {
+        val (twii, otc) = fetchTwseMisIndices()
+        _uiState.value = _uiState.value.copy(twIndices = listOf(twii, otc))
     }
 
     /** TWSE MIS 抓取上市 + 上櫃即時指數 */

@@ -4,6 +4,14 @@
     <!-- 網路權限（API 請求 + 廣告下載） -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Android 11+ 需宣告，才能用 Intent.ACTION_VIEW 開啟外部瀏覽器 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <application
         android:name=".StockBoardApplication"
         android:allowBackup="true"
