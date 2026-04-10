@@ -28,3 +28,4 @@ test_task*.py
 test_techstack.py
 test_throttle.py
 test_validator.py
+.superpowers/
