@@ -206,7 +206,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         val rows = (twList.size + 1) / 2
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            modifier = Modifier.height((rows * 180).dp).padding(horizontal = 12.dp),
+                            modifier = Modifier.height((rows * 120).dp).padding(horizontal = 12.dp),
                             userScrollEnabled = false
                         ) {
                             items(twList.size) { i ->
@@ -243,7 +243,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         val rows = (usList.size + 1) / 2
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
-                            modifier = Modifier.height((rows * 180).dp).padding(horizontal = 12.dp),
+                            modifier = Modifier.height((rows * 120).dp).padding(horizontal = 12.dp),
                             userScrollEnabled = false
                         ) {
                             items(usList.size) { i ->
