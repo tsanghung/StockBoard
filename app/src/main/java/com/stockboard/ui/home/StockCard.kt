@@ -41,32 +41,31 @@ fun StockCard(
         modifier = Modifier.fillMaxWidth().padding(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // 第 1 行：股票代號+Badge
+            // 第 1 行：股票代號 + 公司名稱 + Badge
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = symbol, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = name, color = TextSecondary, fontSize = 15.sp)
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = badgeText,
                     color = TextPrimary,
                     fontSize = 10.sp,
-                    modifier = Modifier.background(TextSecondary.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                                       .padding(horizontal = 4.dp, vertical = 2.dp)
+                    modifier = Modifier
+                        .background(TextSecondary.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
-            
-            // 第 2 行：公司名稱
-            Text(text = name, color = TextSecondary, fontSize = 12.sp)
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            // 第 3 行：現價
+
+            // 第 2 行：現價
             Text(text = price, color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
-            
-            // 第 4 行：漲跌幅
+
+            // 第 3 行：漲跌幅
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier

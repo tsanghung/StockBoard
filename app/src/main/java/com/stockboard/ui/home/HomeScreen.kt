@@ -93,41 +93,14 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
             }
         },
         bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // 底部資訊列 + 導航區
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "資料來源: Yahoo Finance / Finnhub\n最後更新: ${uiState.lastUpdated}",
-                        color = TextSecondary,
-                        fontSize = 10.sp
-                    )
-                    Row(
-                        modifier = Modifier.clickable { /* 跳轉設定頁 TODO */ },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(imageVector = Icons.Filled.Settings, contentDescription = "設定", tint = TextPrimary, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "自選管理", color = TextPrimary, fontSize = 12.sp)
-                    }
+            // Task 6-1/6-2: AdMob Banner（50dp）
+            BannerAdComposable(
+                adUnitId = try {
+                    com.stockboard.BuildConfig.ADMOB_BANNER_ID
+                } catch (e: Exception) {
+                    "ca-app-pub-3940256099942544/6300978111"  // fallback
                 }
-                
-                // Task 6-1/6-2: AdMob Banner（50dp）
-                // 測試 ID：ca-app-pub-3940256099942544/6300978111
-                // 正式版從 BuildConfig.ADMOB_BANNER_ID 讀取
-                BannerAdComposable(
-                    adUnitId = try {
-                        com.stockboard.BuildConfig.ADMOB_BANNER_ID
-                    } catch (e: Exception) {
-                        "ca-app-pub-3940256099942544/6300978111"  // fallback
-                    }
-                )
-            }
+            )
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -228,30 +201,76 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                     }
                 }
 
-                // 1-3. 台股自選
+                // 台股自選
                 item { SectionTitle("台股自選") }
                 item {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.height(180.dp).padding(horizontal = 12.dp),
-                        userScrollEnabled = false
-                    ) {
-                        items(2) {
-                            StockCard(symbol = "2330", badgeText = "上市", name = "台積電", price = "850.00", change = "+10.0", changePct = "+1.19", isUp = true)
+                    val twList = uiState.twWatchlist
+                    if (twList.isEmpty()) {
+                        androidx.compose.material3.Text(
+                            text = "尚未加入台股自選",
+                            color = com.stockboard.ui.theme.TextSecondary,
+                            fontSize = 13.sp,
+                            modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    } else {
+                        val rows = (twList.size + 1) / 2
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.height((rows * 180).dp).padding(horizontal = 12.dp),
+                            userScrollEnabled = false
+                        ) {
+                            items(twList.size) { i ->
+                                val q = twList[i]
+                                val price = q.price?.let { String.format("%.2f", it) } ?: "--"
+                                val changeVal = q.change ?: 0.0
+                                val pctVal = q.changePercent ?: 0.0
+                                val change = if (q.price != null) String.format("%+.2f", changeVal) else "--"
+                                val pct = if (q.price != null) String.format("%+.2f", pctVal) else "--"
+                                val isUp = when {
+                                    q.price == null -> null
+                                    changeVal > 0 -> true
+                                    changeVal < 0 -> false
+                                    else -> null
+                                }
+                                StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
+                            }
                         }
                     }
                 }
 
-                // 1-3. 美股自選
+                // 美股自選
                 item { SectionTitle("美股自選") }
                 item {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.height(180.dp).padding(horizontal = 12.dp),
-                        userScrollEnabled = false
-                    ) {
-                        items(2) {
-                            StockCard(symbol = "AAPL", badgeText = "US", name = "Apple Inc.", price = "190.50", change = "-1.50", changePct = "-0.78", isUp = false)
+                    val usList = uiState.usWatchlist
+                    if (usList.isEmpty()) {
+                        androidx.compose.material3.Text(
+                            text = "尚未加入美股自選",
+                            color = com.stockboard.ui.theme.TextSecondary,
+                            fontSize = 13.sp,
+                            modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    } else {
+                        val rows = (usList.size + 1) / 2
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.height((rows * 180).dp).padding(horizontal = 12.dp),
+                            userScrollEnabled = false
+                        ) {
+                            items(usList.size) { i ->
+                                val q = usList[i]
+                                val price = q.price?.let { String.format("%.2f", it) } ?: "--"
+                                val changeVal = q.change ?: 0.0
+                                val pctVal = q.changePercent ?: 0.0
+                                val change = if (q.price != null) String.format("%+.2f", changeVal) else "--"
+                                val pct = if (q.price != null) String.format("%+.2f", pctVal) else "--"
+                                val isUp = when {
+                                    q.price == null -> null
+                                    changeVal > 0 -> true
+                                    changeVal < 0 -> false
+                                    else -> null
+                                }
+                                StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
+                            }
                         }
                     }
                 }

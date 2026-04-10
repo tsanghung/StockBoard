@@ -42,7 +42,7 @@ fun IndexCard(
             // 第 1 行：股票代號+Badge (大盤指數無代號行，此處依照 2.3 略過大盤代號)
             
             // 第 2 行：公司 / 指數名稱（細字，灰色）
-            Text(text = name, color = TextSecondary, fontSize = 12.sp)
+            Text(text = name, color = TextSecondary, fontSize = 15.sp)
             Spacer(modifier = Modifier.height(4.dp))
             
             // 第 3 行：現價（大字，白色）

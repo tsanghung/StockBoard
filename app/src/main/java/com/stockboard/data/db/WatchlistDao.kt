@@ -21,4 +21,7 @@ interface WatchlistDao {
     /** Task 3-4：依 symbol 刪除（不需完整物件） */
     @Query("DELETE FROM watchlist WHERE symbol = :symbol")
     suspend fun deleteBySymbol(symbol: String)
+
+    @Query("SELECT COUNT(*) FROM watchlist WHERE symbol = :symbol AND market = :market")
+    suspend fun countBySymbol(symbol: String, market: com.stockboard.util.MarketType): Int
 }
