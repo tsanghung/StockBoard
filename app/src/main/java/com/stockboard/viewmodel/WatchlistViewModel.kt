@@ -1,8 +1,9 @@
 package com.stockboard.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.stockboard.data.db.WatchlistDao
+import com.stockboard.data.db.AppDatabase
 import com.stockboard.data.db.WatchlistItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,9 @@ data class WatchlistUiState(
  * - confirmDelete() 實際呼叫 DAO 刪除
  * - cancelDelete() 取消（關閉 Dialog）
  */
-class WatchlistViewModel(private val watchlistDao: WatchlistDao) : ViewModel() {
+class WatchlistViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val watchlistDao = AppDatabase.getDatabase(application).watchlistDao()
 
     private val _uiState = MutableStateFlow(WatchlistUiState())
     val uiState: StateFlow<WatchlistUiState> = _uiState.asStateFlow()

@@ -92,16 +92,6 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                 }
             }
         },
-        bottomBar = {
-            // Task 6-1/6-2: AdMob Banner（50dp）
-            BannerAdComposable(
-                adUnitId = try {
-                    com.stockboard.BuildConfig.ADMOB_BANNER_ID
-                } catch (e: Exception) {
-                    "ca-app-pub-3940256099942544/6300978111"  // fallback
-                }
-            )
-        }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             LazyColumn(

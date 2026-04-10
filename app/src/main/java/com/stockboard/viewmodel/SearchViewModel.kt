@@ -1,9 +1,10 @@
 package com.stockboard.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.stockboard.data.db.AppDatabase
 import com.stockboard.data.db.StockMeta
-import com.stockboard.data.db.WatchlistDao
 import com.stockboard.data.db.WatchlistItem
 import com.stockboard.data.model.FinnhubSearchResult
 import com.stockboard.data.network.ApiClient
@@ -17,9 +18,6 @@ import kotlinx.coroutines.launch
 // 搜尋模式：台股 or 美股
 enum class SearchMode { TAIWAN, US }
 
-// 規格書 3-3：允許的美股類型
-private val ALLOWED_US_TYPES = setOf("Common Stock", "ETP")
-
 data class SearchUiState(
     val mode: SearchMode = SearchMode.TAIWAN,
     val query: String = "",
@@ -30,10 +28,11 @@ data class SearchUiState(
     val errorMessage: String? = null
 )
 
-class SearchViewModel(
-    private val repository: StockMetaRepository,
-    private val watchlistDao: WatchlistDao
-) : ViewModel() {
+class SearchViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val db = AppDatabase.getDatabase(application)
+    private val watchlistDao = db.watchlistDao()
+    private val repository = StockMetaRepository(db.stockMetaDao())
 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
@@ -79,59 +78,84 @@ class SearchViewModel(
     }
 
     /**
-     * Task 3-3 核心：美股搜尋
-     * 呼叫 Finnhub GET /api/v1/search?q={query}
-     * 過濾 type = "Common Stock" 或 "ETP"
+     * 美股搜尋：呼叫 YahooChartService 驗證 symbol 是否存在
+     * Chart API 查無代號會拋出 HTTP 404，作為驗證機制
+     * 查獲後包裝為 FinnhubSearchResult 以維持 UI 一致性
      */
     private fun searchUS(query: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                // TODO: 正式版從 local.properties 讀取 API Key
-                val response = ApiClient.finnhubService.searchSymbol(
-                    query = query,
-                    token = "demo_token"
-                )
-                val filtered = response.result
-                    .filter { it.type in ALLOWED_US_TYPES }
-                    .take(20)
-                _uiState.value = _uiState.value.copy(usResults = filtered, isLoading = false)
+                val symbolParam = query.uppercase()
+                val response = ApiClient.yahooChartService.getChart(symbolParam)
+
+                val meta = response.chart?.result?.firstOrNull()?.meta
+                if (meta != null && meta.regularMarketPrice != null) {
+                    val result = FinnhubSearchResult(
+                        description = meta.symbol ?: symbolParam,
+                        displaySymbol = meta.symbol ?: symbolParam,
+                        symbol = meta.symbol ?: symbolParam,
+                        type = "Common Stock"
+                    )
+                    _uiState.value = _uiState.value.copy(usResults = listOf(result), isLoading = false)
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        usResults = emptyList(),
+                        isLoading = false,
+                        errorMessage = "查無此美股代號"
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
+                    usResults = emptyList(),
                     isLoading = false,
-                    errorMessage = "美股搜尋失敗：${e.message}"
+                    errorMessage = "查無此代號或網路異常"
                 )
             }
         }
     }
 
-    /** 新增台股至 watchlist（market = TAIWAN） */
+    /** 新增台股至 watchlist，加入前檢查重複並使用正確 sort_order */
     fun addTaiwanStockToWatchlist(stock: StockMeta) {
         viewModelScope.launch {
-            val item = WatchlistItem(
-                symbol = stock.symbol,
-                name = stock.name,
-                market = MarketType.TAIWAN,
-                sortOrder = 0,
-                isFixed = false
+            val existsCount = watchlistDao.countBySymbol(stock.symbol, MarketType.TAIWAN)
+            if (existsCount > 0) {
+                _uiState.value = _uiState.value.copy(errorMessage = "${stock.symbol} 已存在於自選清單中")
+                return@launch
+            }
+            val currentMaxOrder = watchlistDao.getMaxSortOrder(MarketType.TAIWAN) ?: -1
+            watchlistDao.insertItem(
+                WatchlistItem(
+                    symbol = stock.symbol,
+                    name = stock.name,
+                    market = MarketType.TAIWAN,
+                    sortOrder = currentMaxOrder + 1,
+                    isFixed = false
+                )
             )
-            watchlistDao.insertItem(item)
-            _uiState.value = _uiState.value.copy(addedMessage = "${stock.name}（${stock.symbol}）已加入台股自選")
+            _uiState.value = _uiState.value.copy(addedMessage = "${stock.name} 已加入台股自選")
         }
     }
 
-    /** Task 3-3：新增美股至 watchlist（market = US） */
+    /** 新增美股至 watchlist，加入前檢查重複並使用正確 sort_order */
     fun addUsStockToWatchlist(stock: FinnhubSearchResult) {
         viewModelScope.launch {
-            val item = WatchlistItem(
-                symbol = stock.symbol,
-                name = stock.description,
-                market = MarketType.US,
-                sortOrder = 0,
-                isFixed = false
+            val existsCount = watchlistDao.countBySymbol(stock.symbol, MarketType.US)
+            if (existsCount > 0) {
+                _uiState.value = _uiState.value.copy(errorMessage = "${stock.symbol} 已存在於自選清單中")
+                return@launch
+            }
+            val currentMaxOrder = watchlistDao.getMaxSortOrder(MarketType.US) ?: -1
+            watchlistDao.insertItem(
+                WatchlistItem(
+                    symbol = stock.symbol,
+                    name = stock.description,
+                    market = MarketType.US,
+                    sortOrder = currentMaxOrder + 1,
+                    isFixed = false
+                )
             )
-            watchlistDao.insertItem(item)
-            _uiState.value = _uiState.value.copy(addedMessage = "${stock.description}（${stock.symbol}）已加入美股自選")
+            _uiState.value = _uiState.value.copy(addedMessage = "${stock.description} 已加入美股自選")
         }
     }
 

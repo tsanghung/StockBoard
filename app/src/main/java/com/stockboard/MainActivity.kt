@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.work.*
-import com.stockboard.ui.home.HomeScreen
+import com.stockboard.ui.nav.MainScreen
 import com.stockboard.ui.theme.StockBoardTheme
 import com.stockboard.worker.StockUpdateWorker
 import java.util.concurrent.TimeUnit
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             StockBoardTheme {
-                HomeScreen()
+                MainScreen()
             }
         }
     }

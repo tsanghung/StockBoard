@@ -24,4 +24,7 @@ interface WatchlistDao {
 
     @Query("SELECT COUNT(*) FROM watchlist WHERE symbol = :symbol AND market = :market")
     suspend fun countBySymbol(symbol: String, market: com.stockboard.util.MarketType): Int
+
+    @Query("SELECT MAX(sort_order) FROM watchlist WHERE market = :market")
+    suspend fun getMaxSortOrder(market: MarketType): Int?
 }

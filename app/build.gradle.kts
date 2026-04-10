@@ -88,6 +88,9 @@ dependencies {
     // 非同步: Kotlin Coroutines + Flow
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // 頁面導航: Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
     // 背景排程: WorkManager
     implementation("androidx.work:work-runtime-ktx:2.8.1")
 

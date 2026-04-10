@@ -25,6 +25,7 @@ import com.stockboard.ui.theme.CardDark
 import com.stockboard.ui.theme.ColorDown
 import com.stockboard.ui.theme.TextPrimary
 import com.stockboard.ui.theme.TextSecondary
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stockboard.viewmodel.WatchlistViewModel
 
 /**
@@ -36,7 +37,7 @@ import com.stockboard.viewmodel.WatchlistViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WatchlistScreen(viewModel: WatchlistViewModel) {
+fun WatchlistScreen(viewModel: WatchlistViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 

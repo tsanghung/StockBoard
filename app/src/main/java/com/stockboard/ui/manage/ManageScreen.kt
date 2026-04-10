@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stockboard.data.db.StockMeta
 import com.stockboard.data.model.FinnhubSearchResult
 import com.stockboard.ui.theme.BackgroundDark
@@ -26,13 +27,13 @@ import com.stockboard.viewmodel.SearchMode
 import com.stockboard.viewmodel.SearchViewModel
 
 /**
- * Task 3-2 / 3-3 合體：台股 + 美股搜尋與新增頁面
+ * 台股 + 美股搜尋與新增頁面
  * - Tab Row 切換台股 / 美股模式
  * - 台股：Room LIKE 查詢（24h 快取 TWSE OpenAPI）
- * - 美股：Finnhub Search API，過濾 Common Stock / ETP
+ * - 美股：Yahoo Chart API 驗證 symbol（HTTP 404 = 查無），結果包裝為 FinnhubSearchResult
  */
 @Composable
-fun ManageScreen(viewModel: SearchViewModel) {
+fun ManageScreen(viewModel: SearchViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -154,7 +155,7 @@ fun ManageScreen(viewModel: SearchViewModel) {
                 uiState.mode == SearchMode.US -> {
                     if (uiState.query.isNotBlank() && uiState.usResults.isEmpty()) {
                         Text(
-                            "查無美股結果「${uiState.query}」",
+                            "查無此代號「${uiState.query.uppercase()}」",
                             color = TextSecondary,
                             modifier = Modifier.align(Alignment.Center)
                         )
@@ -210,7 +211,6 @@ private fun UsStockRow(stock: FinnhubSearchResult, onAdd: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(text = stock.symbol, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                // 類型徽章（US / ETF）
                 Surface(
                     shape = RoundedCornerShape(4.dp),
                     color = ColorUp.copy(alpha = 0.15f)
