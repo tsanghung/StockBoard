@@ -193,36 +193,50 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
 
                 // 台股自選
                 item { SectionTitle("台股自選") }
-                item {
-                    val twList = uiState.twWatchlist
-                    if (twList.isEmpty()) {
+
+                val twList = uiState.twWatchlist
+                if (twList.isEmpty()) {
+                    item {
                         androidx.compose.material3.Text(
                             text = "尚未加入台股自選",
                             color = com.stockboard.ui.theme.TextSecondary,
                             fontSize = 13.sp,
                             modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
-                    } else {
-                        val rows = (twList.size + 1) / 2
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.height((rows * 120).dp).padding(horizontal = 12.dp),
-                            userScrollEnabled = false
+                    }
+                } else {
+                    // 移除原本的 LazyVerticalGrid，改將資料每 2 筆切成一個子陣列 (Chunk)
+                    val twListChunks = twList.chunked(2)
+                    items(twListChunks.size) { rowIndex ->
+                        val rowItems = twListChunks[rowIndex]
+                        
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 4.dp), // vertical 用來拉開上下 Row 的間距
+                            horizontalArrangement = Arrangement.spacedBy(8.dp) // 水平間距
                         ) {
-                            items(twList.size) { i ->
-                                val q = twList[i]
-                                val price = q.price?.let { String.format("%.2f", it) } ?: "--"
-                                val changeVal = q.change ?: 0.0
-                                val pctVal = q.changePercent ?: 0.0
-                                val change = if (q.price != null) String.format("%+.2f", changeVal) else "--"
-                                val pct = if (q.price != null) String.format("%+.2f", pctVal) else "--"
-                                val isUp = when {
-                                    q.price == null -> null
-                                    changeVal > 0 -> true
-                                    changeVal < 0 -> false
-                                    else -> null
+                            // 渲染該行內的卡片 (1~2 張)
+                            for (q in rowItems) {
+                                Box(modifier = Modifier.weight(1f)) { // weight(1f) 確保兩張卡片等寬
+                                    val price = q.price?.let { String.format("%.2f", it) } ?: "--"
+                                    val changeVal = q.change ?: 0.0
+                                    val pctVal = q.changePercent ?: 0.0
+                                    val change = if (q.price != null) String.format("%+.2f", changeVal) else "--"
+                                    val pct = if (q.price != null) String.format("%+.2f", pctVal) else "--"
+                                    val isUp = when {
+                                        q.price == null -> null
+                                        changeVal > 0 -> true
+                                        changeVal < 0 -> false
+                                        else -> null
+                                    }
+                                    StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
                                 }
-                                StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
+                            }
+                            
+                            // 防錯機制：如果數量是奇數，該行只有 1 張卡片，需補上一個透明的空白佔位符，避免第一張卡片撐滿整個螢幕寬度
+                            if (rowItems.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }
@@ -230,36 +244,45 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
 
                 // 美股自選
                 item { SectionTitle("美股自選") }
-                item {
-                    val usList = uiState.usWatchlist
-                    if (usList.isEmpty()) {
+
+                val usList = uiState.usWatchlist
+                if (usList.isEmpty()) {
+                    item {
                         androidx.compose.material3.Text(
                             text = "尚未加入美股自選",
                             color = com.stockboard.ui.theme.TextSecondary,
                             fontSize = 13.sp,
                             modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
-                    } else {
-                        val rows = (usList.size + 1) / 2
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.height((rows * 120).dp).padding(horizontal = 12.dp),
-                            userScrollEnabled = false
+                    }
+                } else {
+                    val usListChunks = usList.chunked(2)
+                    items(usListChunks.size) { rowIndex ->
+                        val rowItems = usListChunks[rowIndex]
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(usList.size) { i ->
-                                val q = usList[i]
-                                val price = q.price?.let { String.format("%.2f", it) } ?: "--"
-                                val changeVal = q.change ?: 0.0
-                                val pctVal = q.changePercent ?: 0.0
-                                val change = if (q.price != null) String.format("%+.2f", changeVal) else "--"
-                                val pct = if (q.price != null) String.format("%+.2f", pctVal) else "--"
-                                val isUp = when {
-                                    q.price == null -> null
-                                    changeVal > 0 -> true
-                                    changeVal < 0 -> false
-                                    else -> null
+                            for (q in rowItems) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    val price = q.price?.let { String.format("%.2f", it) } ?: "--"
+                                    val changeVal = q.change ?: 0.0
+                                    val pctVal = q.changePercent ?: 0.0
+                                    val change = if (q.price != null) String.format("%+.2f", changeVal) else "--"
+                                    val pct = if (q.price != null) String.format("%+.2f", pctVal) else "--"
+                                    val isUp = when {
+                                        q.price == null -> null
+                                        changeVal > 0 -> true
+                                        changeVal < 0 -> false
+                                        else -> null
+                                    }
+                                    StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
                                 }
-                                StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
+                            }
+                            if (rowItems.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }

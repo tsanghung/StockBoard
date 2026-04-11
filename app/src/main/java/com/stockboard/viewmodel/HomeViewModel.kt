@@ -263,7 +263,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun getSecondsUntilNextRefresh(): Long {
-        val elapsed = System.currentTimeMillis() - (System.currentTimeMillis() - RateLimiter.MINIMUM_INTERVAL_MS)
+        val elapsed = System.currentTimeMillis() - RateLimiter.lastRefreshTime
         return maxOf(0L, (RateLimiter.MINIMUM_INTERVAL_MS - elapsed) / 1000L)
     }
 }
