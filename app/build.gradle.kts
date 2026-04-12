@@ -96,4 +96,17 @@ dependencies {
 
     // 廣告: Google AdMob SDK
     implementation("com.google.android.gms:play-services-ads:22.4.0")
+
+    // 圖片載入: Coil（新聞卡片封面圖）
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // 瀏覽器: Chrome Custom Tabs（點擊新聞開啟）
+    implementation("androidx.browser:browser:1.7.0")
+
+    // Material Icons Extended（包含 Icons.Filled.Newspaper，core 套件不含此圖示）
+    // 不指定版本，由 Compose BOM 統一管理，避免與 compose-ui / material3 版本衝突
+    implementation("androidx.compose.material:material-icons-extended")
+
+    // Lifecycle Runtime Compose（提供 collectAsStateWithLifecycle，App 進背景時自動暫停 Flow 訂閱）
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 }
