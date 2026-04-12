@@ -81,4 +81,23 @@ object ApiClient {
             .create(TwelveDataService::class.java)
     }
 
+    val rssNewsService: RssNewsService by lazy {
+        // 加入 User-Agent 避免部分 RSS 來源拒絕爬蟲
+        val rssClient = okHttpClient.newBuilder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", "Mozilla/5.0 (compatible; StockBoard/1.0)")
+                        .build()
+                )
+            }
+            .build()
+        // baseUrl 不重要，@Url 會覆寫完整 URL
+        Retrofit.Builder()
+            .baseUrl("https://www.example.com/")
+            .client(rssClient)
+            .build()
+            .create(RssNewsService::class.java)
+    }
+
 }
