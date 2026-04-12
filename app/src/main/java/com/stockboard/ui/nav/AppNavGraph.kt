@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -25,6 +26,7 @@ import com.stockboard.ui.ads.BannerAdComposable
 import com.stockboard.ui.home.HomeScreen
 import com.stockboard.ui.manage.ManageScreen
 import com.stockboard.ui.manage.WatchlistScreen
+import com.stockboard.ui.news.NewsScreen
 import com.stockboard.ui.theme.CardDark
 import com.stockboard.ui.theme.ColorUp
 import com.stockboard.ui.theme.TextSecondary
@@ -38,7 +40,6 @@ fun MainScreen() {
     Scaffold(
         bottomBar = {
             Column {
-                // Task 6-1/6-2: AdMob Banner 保持在最底部
                 BannerAdComposable(adUnitId = com.stockboard.BuildConfig.ADMOB_BANNER_ID)
 
                 NavigationBar(containerColor = CardDark) {
@@ -48,6 +49,25 @@ fun MainScreen() {
                         selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
                         onClick = {
                             navController.navigate("home") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = ColorUp,
+                            selectedTextColor = ColorUp,
+                            indicatorColor = ColorUp.copy(alpha = 0.15f),
+                            unselectedIconColor = TextSecondary,
+                            unselectedTextColor = TextSecondary
+                        )
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Filled.Newspaper, contentDescription = "新聞") },
+                        label = { Text("財經新聞") },
+                        selected = currentDestination?.hierarchy?.any { it.route == "news" } == true,
+                        onClick = {
+                            navController.navigate("news") {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -109,6 +129,7 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") { HomeScreen() }
+            composable("news") { NewsScreen() }
             composable("manage") { ManageScreen() }
             composable("watchlist") { WatchlistScreen() }
         }
