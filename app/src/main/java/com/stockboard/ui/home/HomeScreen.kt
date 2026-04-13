@@ -101,25 +101,48 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                 // 大盤 / 美國
                 item { SectionTitle("大盤 / 美國") }
                 item {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.height(360.dp).padding(horizontal = 12.dp),
-                        userScrollEnabled = false
-                    ) {
-                        items(uiState.usIndices.size) { i ->
-                            val itemUi = uiState.usIndices[i]
-                            val name = itemUi.shortName
-                            val price = itemUi.price?.let { String.format("%.2f", it) } ?: "0.00"
-                            val changeVal = itemUi.change ?: 0.0
-                            val pctVal = itemUi.changePercent ?: 0.0
-                            val change = String.format("%+.2f", changeVal)
-                            val pct = String.format("%+.2f", pctVal)
-                            val isUp = when {
-                                changeVal > 0 -> true
-                                changeVal < 0 -> false
-                                else -> null
+                    val context = LocalContext.current
+                    val usIndicesChunks = uiState.usIndices.chunked(2)
+                    Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+                        usIndicesChunks.forEach { rowItems ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowItems.forEach { itemUi ->
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        val name = itemUi.shortName
+                                        val price = itemUi.price?.let { String.format("%.2f", it) } ?: "0.00"
+                                        val changeVal = itemUi.change ?: 0.0
+                                        val pctVal = itemUi.changePercent ?: 0.0
+                                        val change = String.format("%+.2f", changeVal)
+                                        val pct = String.format("%+.2f", pctVal)
+                                        val isUp = when {
+                                            changeVal > 0 -> true
+                                            changeVal < 0 -> false
+                                            else -> null
+                                        }
+                                        IndexCard(
+                                            name = name,
+                                            price = price,
+                                            change = change,
+                                            changePct = pct,
+                                            isUp = isUp,
+                                            onClick = {
+                                                itemUi.url?.let { url ->
+                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                    context.startActivity(intent)
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                                if (rowItems.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
                             }
-                            IndexCard(name, price, change, pct, isUp)
                         }
                     }
                 }
@@ -209,6 +232,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                     val twListChunks = twList.chunked(2)
                     items(twListChunks.size) { rowIndex ->
                         val rowItems = twListChunks[rowIndex]
+                        val context = LocalContext.current
                         
                         Row(
                             modifier = Modifier
@@ -230,7 +254,21 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                                         changeVal < 0 -> false
                                         else -> null
                                     }
-                                    StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
+                                    StockCard(
+                                        symbol = q.symbol,
+                                        badgeText = q.badgeText,
+                                        name = q.name,
+                                        price = price,
+                                        change = change,
+                                        changePct = pct,
+                                        isUp = isUp,
+                                        onClick = {
+                                            val suffix = if (q.badgeText == "上櫃" || q.badgeText == "櫃") ".TWO" else ".TW"
+                                            val url = "https://tw.stock.yahoo.com/quote/${q.symbol}$suffix"
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            context.startActivity(intent)
+                                        }
+                                    )
                                 }
                             }
                             
@@ -259,6 +297,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                     val usListChunks = usList.chunked(2)
                     items(usListChunks.size) { rowIndex ->
                         val rowItems = usListChunks[rowIndex]
+                        val context = LocalContext.current
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -278,7 +317,23 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                                         changeVal < 0 -> false
                                         else -> null
                                     }
-                                    StockCard(q.symbol, q.badgeText, q.name, price, change, pct, isUp)
+                                    StockCard(
+                                        symbol = q.symbol,
+                                        badgeText = q.badgeText,
+                                        name = q.name,
+                                        price = price,
+                                        change = change,
+                                        changePct = pct,
+                                        isUp = isUp,
+                                        onClick = {
+                                            // 美股自選對應 Google Finance。使用從 Yahoo API 動態解析得出的 sourceExchange，以完美對應 NASDAQ 或 NYSE，
+                                            // 解決行動版瀏覽器如果交易所錯誤會直接顯示「找不到網頁」的嚴重 UX 問題。
+                                            val exchange = q.sourceExchange ?: "NASDAQ"
+                                            val url = "https://www.google.com/finance/quote/${q.symbol}:$exchange?hl=zh-TW"
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            context.startActivity(intent)
+                                        }
+                                    )
                                 }
                             }
                             if (rowItems.size == 1) {

@@ -90,14 +90,28 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 val response = ApiClient.yahooChartService.getChart(symbolParam)
 
                 val meta = response.chart?.result?.firstOrNull()?.meta
+                val exchange = meta?.exchangeName?.uppercase()
+                
+                // 僅允許紐約證券交易所 (NYSE) 與納斯達克 (NASDAQ) 相關代碼
+                val isAllowedExchange = exchange in listOf("NYQ", "NYSE", "NMS", "NASDAQ", "NCM", "NGM")
+
                 if (meta != null && meta.regularMarketPrice != null) {
-                    val result = FinnhubSearchResult(
-                        description = meta.symbol ?: symbolParam,
-                        displaySymbol = meta.symbol ?: symbolParam,
-                        symbol = meta.symbol ?: symbolParam,
-                        type = "Common Stock"
-                    )
-                    _uiState.value = _uiState.value.copy(usResults = listOf(result), isLoading = false)
+                    if (isAllowedExchange) {
+                        val result = FinnhubSearchResult(
+                            description = meta.shortName ?: meta.symbol ?: symbolParam, // 使用 shortName 獲取真實公司名稱，如無則 fallback
+                            displaySymbol = meta.symbol ?: symbolParam,
+                            symbol = meta.symbol ?: symbolParam,
+                            type = "Common Stock"
+                        )
+                        _uiState.value = _uiState.value.copy(usResults = listOf(result), isLoading = false)
+                    } else {
+                        // 查到標的，但不在允許的交易所
+                        _uiState.value = _uiState.value.copy(
+                            usResults = emptyList(),
+                            isLoading = false,
+                            errorMessage = "該標的 ($exchange) 不在支援的 NYSE/NASDAQ 交易所"
+                        )
+                    }
                 } else {
                     _uiState.value = _uiState.value.copy(
                         usResults = emptyList(),

@@ -1,6 +1,7 @@
 package com.stockboard.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -27,7 +28,8 @@ fun StockCard(
     price: String,
     change: String,
     changePct: String,
-    isUp: Boolean?
+    isUp: Boolean?,
+    onClick: () -> Unit = {}
 ) {
     val changeColor = when (isUp) {
         true -> ColorUp
@@ -38,7 +40,7 @@ fun StockCard(
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardDark),
-        modifier = Modifier.fillMaxWidth().padding(4.dp)
+        modifier = Modifier.fillMaxWidth().padding(4.dp).clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // 第 1 行：股票代號 + 公司名稱 + Badge

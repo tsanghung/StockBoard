@@ -18,5 +18,6 @@ data class YahooChartMeta(
     val regularMarketPrice: Double? = null,
     val previousClose: Double? = null,
     val chartPreviousClose: Double? = null,  // fallback when previousClose 為 null
-    val regularMarketTime: Long? = null
+    val regularMarketTime: Long? = null,
+    val exchangeName: String? = null
 )

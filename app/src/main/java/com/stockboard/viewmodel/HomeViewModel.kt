@@ -26,7 +26,8 @@ data class UsIndexUiModel(
     val shortName: String,
     val price: Double? = null,
     val change: Double? = null,
-    val changePercent: Double? = null
+    val changePercent: Double? = null,
+    val url: String? = null
 )
 
 data class StockQuoteUiModel(
@@ -36,7 +37,8 @@ data class StockQuoteUiModel(
     val badgeText: String,
     val price: Double? = null,
     val change: Double? = null,
-    val changePercent: Double? = null
+    val changePercent: Double? = null,
+    val sourceExchange: String? = null
 )
 
 data class HomeUiState(
@@ -58,13 +60,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _watchlistItems = MutableStateFlow<List<WatchlistItem>>(emptyList())
 
-    // Yahoo Finance 美股真實指數 symbol
+    // Yahoo Finance 美股真實指數 symbol 及對應的 Google Finance 網址
     private val usMarketSymbols = listOf(
-        "^DJI"  to "道瓊工業",
-        "^IXIC" to "NASDAQ",
-        "^GSPC" to "S&P 500",
-        "^SOX"  to "費半 SOX",
-        "TSM"   to "台積電 ADR"
+        Triple("^DJI",  "道瓊工業",   "https://www.google.com/finance/beta/quote/.DJI:INDEXDJX?hl=zh-TW&window=YTD"),
+        Triple("^IXIC", "NASDAQ",     "https://www.google.com/finance/beta/quote/.IXIC:INDEXNASDAQ?hl=zh-TW&window=YTD"),
+        Triple("^GSPC", "S&P 500",   "https://www.google.com/finance/beta/quote/.INX:INDEXSP?hl=zh-TW&window=YTD"),
+        Triple("^SOX",  "費半 SOX",   "https://www.google.com/finance/beta/quote/SOX:INDEXNASDAQ?hl=zh-TW&window=YTD"),
+        Triple("TSM",   "台積電 ADR", "https://www.google.com/finance/beta/quote/TSM:NYSE?hl=zh-TW&window=YTD")
     )
 
     companion object {
@@ -74,7 +76,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         _uiState.value = _uiState.value.copy(
-            usIndices = usMarketSymbols.map { UsIndexUiModel(it.first, it.second) }
+            usIndices = usMarketSymbols.map { UsIndexUiModel(it.first, it.second, url = it.third) }
         )
         // 持續訂閱自選股清單，清單變動時觸發重新報價
         viewModelScope.launch {
@@ -160,7 +162,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** 美股真實指數（v8 Chart API on query2） */
     private suspend fun fetchYahooUsIndices() = coroutineScope {
-        val results = usMarketSymbols.map { (symbol, name) ->
+        val results = usMarketSymbols.map { (symbol, name, url) ->
             async {
                 try {
                     val encoded = symbol.replace("^", "%5E")
@@ -170,9 +172,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     val prev = meta?.previousClose ?: meta?.chartPreviousClose
                     val change = if (price != null && prev != null) price - prev else null
                     val pct = if (change != null && prev != null && prev != 0.0) change / prev * 100 else null
-                    UsIndexUiModel(symbol, name, price, change, pct)
+                    UsIndexUiModel(symbol, name, price, change, pct, url)
                 } catch (e: Exception) {
-                    UsIndexUiModel(symbol, name)
+                    UsIndexUiModel(symbol, name, url = url)
                 }
             }
         }.awaitAll()
@@ -254,9 +256,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     val prev  = meta?.previousClose ?: meta?.chartPreviousClose
                     val change = if (price != null && prev != null) price - prev else null
                     val pct    = if (change != null && prev != null && prev != 0.0) change / prev * 100 else null
-                    StockQuoteUiModel(watchlistItem.symbol, watchlistItem.name, watchlistItem.market, "US", price, change, pct)
+                    
+                    // Yahoo Finance 傳回的 exchangeName (如 NMS 代表 NASDAQ，NYQ 代表 NYSE)
+                    val googleExchange = when (meta?.exchangeName?.uppercase()) {
+                        "NYQ", "NYSE" -> "NYSE"
+                        "NMS", "NASDAQ", "NCM", "NGM" -> "NASDAQ"
+                        "BTS", "BATS", "BGM" -> "BATS"
+                        "PNK", "OTC", "OTCMKTS" -> "OTCMKTS"
+                        "ASE", "AMEX" -> "NYSEAMERICAN"
+                        else -> meta?.exchangeName?.uppercase() ?: "NASDAQ"
+                    }
+                    
+                    StockQuoteUiModel(watchlistItem.symbol, watchlistItem.name, watchlistItem.market, "US", price, change, pct, sourceExchange = googleExchange)
                 } catch (e: Exception) {
-                    StockQuoteUiModel(watchlistItem.symbol, watchlistItem.name, watchlistItem.market, "US")
+                    StockQuoteUiModel(watchlistItem.symbol, watchlistItem.name, watchlistItem.market, "US", sourceExchange = "NASDAQ")
                 }
             }
         }.awaitAll()

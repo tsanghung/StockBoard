@@ -19,13 +19,16 @@ import com.stockboard.ui.theme.ColorUp
 import com.stockboard.ui.theme.TextPrimary
 import com.stockboard.ui.theme.TextSecondary
 
+import androidx.compose.foundation.clickable
+
 @Composable
 fun IndexCard(
     name: String,
     price: String,
     change: String,
     changePct: String,
-    isUp: Boolean?
+    isUp: Boolean?,
+    onClick: () -> Unit = {}
 ) {
     val changeColor = when (isUp) {
         true -> ColorUp
@@ -36,7 +39,7 @@ fun IndexCard(
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardDark),
-        modifier = Modifier.fillMaxWidth().padding(4.dp)
+        modifier = Modifier.fillMaxWidth().padding(4.dp).clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // 第 1 行：股票代號+Badge (大盤指數無代號行，此處依照 2.3 略過大盤代號)

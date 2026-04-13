@@ -1,0 +1,45 @@
+# 點擊大盤指數卡片導向外部網頁實作計畫
+
+這個計畫旨在完成使用者點擊「道瓊工業」、「NASDAQ」、「S&P 500」、「費半 SOX」、「台積電 ADR」這五個市場總覽卡片時，能夠自動開啟外部瀏覽器並直接跳轉到對應 Google Finance 財務報價頁面的需求。
+
+## 需求範圍
+根據確認，目前針對**美股四大指數與台積電 ADR**處理，並於跳轉網址統一帶入 `&window=YTD` 參數（今年以來走勢）。以下為盤整出的對應網址：
+
+- **道瓊工業 (^DJI)**: `https://www.google.com/finance/beta/quote/.DJI:INDEXDJX?hl=zh-TW&window=YTD`
+- **NASDAQ (^IXIC)**: `https://www.google.com/finance/beta/quote/.IXIC:INDEXNASDAQ?hl=zh-TW&window=YTD`
+- **S&P 500 (^GSPC)**: `https://www.google.com/finance/beta/quote/.INX:INDEXSP?hl=zh-TW&window=YTD`
+- **費半 SOX (^SOX)**: `https://www.google.com/finance/beta/quote/SOX:INDEXNASDAQ?hl=zh-TW&window=YTD`
+- **台積電 ADR (TSM)**: `https://www.google.com/finance/beta/quote/TSM:NYSE?hl=zh-TW&window=YTD`
+
+*(註：目前無需修改台灣上市、上櫃指數的邏輯。)*
+
+## 詳細實作步驟
+
+### 1. 擴充資料結構 (`HomeViewModel.kt`)
+- **調整 `UsIndexUiModel`**: 新增 `val url: String? = null` 屬性。
+- **更新 `usMarketSymbols`**: 將原有的 `Pair` 結構修改為 `Triple<String, String, String>`，將上方盤整好的 Google Finance 對應網址作為第三個參數綁定。
+- **傳遞 `url` 屬性**: 確保在 `init` 區塊以及 `fetchYahooUsIndices()` 方法實例化 `UsIndexUiModel` 時，都有正確地把網址放入 model 中。
+
+### 2. 更新通用元件 (`IndexCard.kt`)
+- 在 `IndexCard` 的參數清單中加入 `onClick: () -> Unit = {}`。
+- 修改 `Card` 的 `Modifier`，加上 `.clickable { onClick() }` 使得整張卡片變成可綁定點擊事件。
+
+### 3. 發動導向機制 (`HomeScreen.kt`)
+- 修改「大盤 / 美國」下的 `IndexCard` 呼叫點。
+- 給 `IndexCard` 傳入 `onClick` 區塊。
+- 若該項目的 `url` 屬性不為空，透過以下語法呼叫系統外部瀏覽器：
+  ```kotlin
+  itemUi.url?.let { url ->
+      val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+      context.startActivity(intent)
+  }
+  ```
+
+---
+
+> [!NOTE]
+> 這個機制完全基於資料驅動 (Data-Driven)， UI (`IndexCard`) 只專注在渲染與傳遞點擊事件，而目標網址的控管全部保留在 `HomeViewModel`。
+
+## User Review Required
+
+請確認上述規劃及對應的 Google Finance 網址是否完全符合預期！確認後即可進入撰寫與修改程式碼階段。
