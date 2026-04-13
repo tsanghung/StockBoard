@@ -62,11 +62,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     // Yahoo Finance 美股真實指數 symbol 及對應的 Google Finance 網址
     private val usMarketSymbols = listOf(
-        Triple("^DJI",  "道瓊工業",   "https://www.google.com/finance/beta/quote/.DJI:INDEXDJX?hl=zh-TW&window=YTD"),
-        Triple("^IXIC", "NASDAQ",     "https://www.google.com/finance/beta/quote/.IXIC:INDEXNASDAQ?hl=zh-TW&window=YTD"),
-        Triple("^GSPC", "S&P 500",   "https://www.google.com/finance/beta/quote/.INX:INDEXSP?hl=zh-TW&window=YTD"),
-        Triple("^SOX",  "費半 SOX",   "https://www.google.com/finance/beta/quote/SOX:INDEXNASDAQ?hl=zh-TW&window=YTD"),
-        Triple("TSM",   "台積電 ADR", "https://www.google.com/finance/beta/quote/TSM:NYSE?hl=zh-TW&window=YTD")
+        Triple("^DJI",  "道瓊工業",   "https://www.google.com/finance/quote/.DJI:INDEXDJX?hl=zh-TW&window=YTD"),
+        Triple("^IXIC", "NASDAQ",     "https://www.google.com/finance/quote/.IXIC:INDEXNASDAQ?hl=zh-TW&window=YTD"),
+        Triple("^GSPC", "S&P 500",   "https://www.google.com/finance/quote/.INX:INDEXSP?hl=zh-TW&window=YTD"),
+        Triple("^SOX",  "費半 SOX",   "https://www.google.com/finance/quote/SOX:INDEXNASDAQ?hl=zh-TW&window=YTD"),
+        Triple("TSM",   "台積電 ADR", "https://www.google.com/finance/quote/TSM:NYSE?hl=zh-TW&window=YTD")
     )
 
     companion object {
