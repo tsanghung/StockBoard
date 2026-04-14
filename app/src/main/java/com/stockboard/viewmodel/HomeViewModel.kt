@@ -203,46 +203,55 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * 台股個股報價：用 TWSE MIS getStockInfo
      * 對每個 symbol 同時送出 tse_ 與 otc_ 前綴，取有成交價的那個
      */
-    private suspend fun fetchTwStockQuotes(items: List<WatchlistItem>): List<StockQuoteUiModel> {
-        if (items.isEmpty()) return emptyList()
+    private suspend fun fetchTwStockQuotes(items: List<WatchlistItem>): List<StockQuoteUiModel> = coroutineScope {
+        if (items.isEmpty()) return@coroutineScope emptyList()
 
-        val exChQuery = items.flatMap { listOf("tse_${it.symbol}.tw", "otc_${it.symbol}.tw") }
-            .joinToString("|")
+        // 將清單以 5 檔為一批次進行分組，確保 ex_ch 參數不會超載
+        val chunkedItems = items.chunked(5)
 
-        return try {
-            val response = ApiClient.twseMisService.getIndexInfo(symbols = exChQuery)
-            val misItems = response.msgArray ?: emptyList()
+        val deferredResults = chunkedItems.map { chunk ->
+            async {
+                val exChQuery = chunk.flatMap { listOf("tse_${it.symbol}.tw", "otc_${it.symbol}.tw") }
+                    .joinToString("|")
 
-            items.map { watchlistItem ->
-                // 優先取有成交價的，否則退而求其次取任一匹配
-                val matched = misItems.filter { it.ch == "${watchlistItem.symbol}.tw" }
-                val misItem = matched.firstOrNull { it.z?.toDoubleOrNull() != null }
-                    ?: matched.firstOrNull()
+                try {
+                    val response = ApiClient.twseMisService.getIndexInfo(symbols = exChQuery)
+                    val misItems = response.msgArray ?: emptyList()
 
-                val price = misItem?.z?.toDoubleOrNull()
-                val prev  = misItem?.y?.toDoubleOrNull()
-                val change = if (price != null && prev != null) price - prev else null
-                val pct    = if (change != null && prev != null && prev != 0.0) change / prev * 100 else null
-                val badge  = when (misItem?.ex) {
-                    "tse" -> "上市"
-                    "otc" -> "上櫃"
-                    else  -> "台股"
+                    chunk.map { watchlistItem ->
+                        val matched = misItems.filter { it.ch == "${watchlistItem.symbol}.tw" }
+                        val misItem = matched.firstOrNull { it.z?.toDoubleOrNull() != null }
+                            ?: matched.firstOrNull()
+
+                        val price = misItem?.z?.toDoubleOrNull()
+                        val prev  = misItem?.y?.toDoubleOrNull()
+                        val change = if (price != null && prev != null) price - prev else null
+                        val pct    = if (change != null && prev != null && prev != 0.0) change / prev * 100 else null
+                        val badge  = when (misItem?.ex) {
+                            "tse" -> "上市"
+                            "otc" -> "上櫃"
+                            else  -> "台股"
+                        }
+
+                        StockQuoteUiModel(
+                            symbol = watchlistItem.symbol,
+                            name   = watchlistItem.name,
+                            market = watchlistItem.market,
+                            badgeText = badge,
+                            price = price,
+                            change = change,
+                            changePercent = pct
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e("HomeViewModel", "fetchTwStockQuotes failed for chunk", e)
+                    chunk.map { StockQuoteUiModel(it.symbol, it.name, it.market, "台股") }
                 }
-
-                StockQuoteUiModel(
-                    symbol = watchlistItem.symbol,
-                    name   = watchlistItem.name,
-                    market = watchlistItem.market,
-                    badgeText = badge,
-                    price = price,
-                    change = change,
-                    changePercent = pct
-                )
             }
-        } catch (e: Exception) {
-            Log.e("HomeViewModel", "fetchTwStockQuotes failed", e)
-            items.map { StockQuoteUiModel(it.symbol, it.name, it.market, "台股") }
         }
+
+        // 等待所有批次完成並攤平結果
+        deferredResults.awaitAll().flatten()
     }
 
     /** 美股個股報價：Yahoo Chart API */

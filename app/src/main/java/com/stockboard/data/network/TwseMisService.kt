@@ -12,7 +12,7 @@ interface TwseMisService {
      */
     @GET("stock/api/getStockInfo.jsp")
     suspend fun getIndexInfo(
-        @Query("ex_ch") symbols: String = "tse_t00.tw|otc_o00.tw",
+        @Query("ex_ch", encoded = true) symbols: String = "tse_t00.tw|otc_o00.tw",
         @Header("Referer") referer: String = "https://mis.twse.com.tw/stock/fibest.html",
         @Header("User-Agent") userAgent: String = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
         @Header("Accept") accept: String = "application/json, text/javascript, */*; q=0.01",
