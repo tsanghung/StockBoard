@@ -200,37 +200,41 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * 台股個股報價：用 TWSE MIS getStockInfo
-     * 對每個 symbol 同時送出 tse_ 與 otc_ 前綴，取有成交價的那個
+     * 台股個股報價：用 Yahoo Finance v7 API
+     * 對每個 symbol 同時送出 .TW 與 .TWO 後綴，取符合的那個
      */
     private suspend fun fetchTwStockQuotes(items: List<WatchlistItem>): List<StockQuoteUiModel> = coroutineScope {
         if (items.isEmpty()) return@coroutineScope emptyList()
 
-        // 將清單以 5 檔為一批次進行分組，確保 ex_ch 參數不會超載
-        val chunkedItems = items.chunked(5)
+        // 雖然 Yahoo 容忍度極高，但維持適當分批（10檔一批）是良好的網路請求實踐
+        val chunkedItems = items.chunked(10)
 
         val deferredResults = chunkedItems.map { chunk ->
             async {
-                val exChQuery = chunk.flatMap { listOf("tse_${it.symbol}.tw", "otc_${it.symbol}.tw") }
-                    .joinToString("|")
+                // 同時產生 .TW (上市) 與 .TWO (上櫃) 的查詢代碼
+                val symbols = chunk.flatMap { listOf("${it.symbol}.TW", "${it.symbol}.TWO") }
+                    .joinToString(",")
 
                 try {
-                    val response = ApiClient.twseMisService.getIndexInfo(symbols = exChQuery)
-                    val misItems = response.msgArray ?: emptyList()
+                    // 使用專案中現成的 Yahoo v7 API
+                    val response = ApiClient.yahooFinanceService.getQuotes(symbols)
+                    val quoteResults = response.quoteResponse?.result ?: emptyList()
 
                     chunk.map { watchlistItem ->
-                        val matched = misItems.filter { it.ch == "${watchlistItem.symbol}.tw" }
-                        val misItem = matched.firstOrNull { it.z?.toDoubleOrNull() != null }
-                            ?: matched.firstOrNull()
+                        // 從回傳陣列中，尋找符合 .TW 或 .TWO 的實際報價物件
+                        val quote = quoteResults.firstOrNull { 
+                            it.symbol == "${watchlistItem.symbol}.TW" || it.symbol == "${watchlistItem.symbol}.TWO" 
+                        }
 
-                        val price = misItem?.z?.toDoubleOrNull()
-                        val prev  = misItem?.y?.toDoubleOrNull()
-                        val change = if (price != null && prev != null) price - prev else null
-                        val pct    = if (change != null && prev != null && prev != 0.0) change / prev * 100 else null
-                        val badge  = when (misItem?.ex) {
-                            "tse" -> "上市"
-                            "otc" -> "上櫃"
-                            else  -> "台股"
+                        val price = quote?.regularMarketPrice
+                        val change = quote?.regularMarketChange
+                        val pct = quote?.regularMarketChangePercent
+                        
+                        // 根據 Yahoo 回傳的後綴字元判定上市或上櫃
+                        val badge = when {
+                            quote?.symbol?.endsWith(".TW") == true -> "上市"
+                            quote?.symbol?.endsWith(".TWO") == true -> "上櫃"
+                            else -> "台股"
                         }
 
                         StockQuoteUiModel(
@@ -244,13 +248,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 } catch (e: Exception) {
-                    Log.e("HomeViewModel", "fetchTwStockQuotes failed for chunk", e)
+                    Log.e("HomeViewModel", "Yahoo Finance API failed for TW stocks", e)
                     chunk.map { StockQuoteUiModel(it.symbol, it.name, it.market, "台股") }
                 }
             }
         }
 
-        // 等待所有批次完成並攤平結果
         deferredResults.awaitAll().flatten()
     }
 
